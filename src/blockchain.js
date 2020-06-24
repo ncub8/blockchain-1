@@ -64,7 +64,7 @@ class Blockchain {
     _addBlock(block) {
         let self = this;
         return new Promise(async (resolve, reject) => {
-           if(self.height >= 0){ 
+           if(self.height+1 > 0){ 
             block.previousBlockHash = self.chain[self.height].hash;
            }
            block.time = new Date().getTime().toString().slice(0,-3);
@@ -124,6 +124,7 @@ class Blockchain {
                 reject('unable to verify');
             }
             if(verified){
+                block = new BlockClass.Block({message, address, signature, star});
                 resolve(block);
             }
             reject('block not verified');
