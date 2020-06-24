@@ -64,7 +64,7 @@ class Blockchain {
     _addBlock(block) {
         let self = this;
         return new Promise(async (resolve, reject) => {
-           if(self.height > 0){ 
+           if(self.height >= 0){ 
             block.previousBlockHash = self.chain[self.height].hash;
            }
            block.time = new Date().getTime().toString().slice(0,-3);
@@ -86,7 +86,7 @@ class Blockchain {
      */
     requestMessageOwnershipVerification(address) {
         return new Promise((resolve) => {
-            resolve(`${address}${new Date().getTime().toString().slice(0,-3)}:starRegistry`);
+            resolve(`${address}:${new Date().getTime().toString().slice(0,-3)}:starRegistry`);
         });
     }
 
@@ -115,13 +115,19 @@ class Blockchain {
             if(currentTime - time > 300){
                 reject('greater than 5 minutes');
             }
-            if(bitcoinMessage.verify(message, address, signature)){
-                let block = new Block({message, address, signature, star})
-                self._addBlock(block)
-                resolve(block);
-            }else{
-                reject('block not verified');
+
+            let verified;
+            try{
+                verified = await bitcoinMessage.verify(message, address, signature);
+
+            } catch(err){
+                reject('unable to verify');
             }
+            if(verified){
+                resolve(block);
+            }
+            reject('block not verified');
+
         });
     }
 
@@ -194,7 +200,8 @@ class Blockchain {
         let errorLog = [];
         return new Promise(async (resolve, reject) => {
             for(let i =1; i < self.chain.length; i++){
-                if(!self.chain[i].validate() || self.chain[i].previousBlockHash !== self.chain[i-1].hash ){
+                let validBlock = await self.chain[i].validate(); 
+                if(!validBlock || self.chain[i].previousBlockHash !== self.chain[i-1].hash ){
                     errorLog.push(self.chain[i]);
                 }
                 resolve(errorLog);
